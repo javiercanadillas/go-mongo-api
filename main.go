@@ -209,6 +209,8 @@ func main() {
 
 	coll = client.Database("library").Collection("books")
 
+	// Set gin-gonic in prod mode
+	gin.SetMode(gin.ReleaseMode)	
 	r := gin.Default()
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
