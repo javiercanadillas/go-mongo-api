@@ -1,4 +1,4 @@
-package mongosecrets 
+package mongosecrets
 
 import (
 	"context"
@@ -11,8 +11,7 @@ import (
 
 func GetSecret(secretID string, secretVersion string) []byte {
 	// GCP project in which to store secrets in Secret Manager.
-	// projectID := "javiercm-webapp"
-	projectNum := "392161294496"
+	projectID := "javiercm-webapp"
 
 	// Create the client.
 	ctx := context.Background()
@@ -24,13 +23,12 @@ func GetSecret(secretID string, secretVersion string) []byte {
 
 	versionPath := strings.Join([]string{
 		"projects/",
-		projectNum,
+		projectID,
 		"/secrets/",
 		secretID,
 		"/versions/",
 		secretVersion,
 	}, "")
-	log.Printf(versionPath)
 
 	// Get the secret
 	getSecretReq := &secretmanagerpb.AccessSecretVersionRequest{
@@ -47,4 +45,3 @@ func GetSecret(secretID string, secretVersion string) []byte {
 	log.Printf("retrieved payload for %s\n", &result.Name)
 	return secretContent
 }
-
