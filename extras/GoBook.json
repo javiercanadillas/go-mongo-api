@@ -1,0 +1,8 @@
+{
+        "title": "The Go Programming Language",
+        "authors": ["Kernighan, Brian W.", "Donovan, Alan A."],
+        "isbn": "0134190440",
+        "categories": ["Computers", "Programming", "Go"],
+        "status": "PUBLISHED",
+        "longDescription": "Go was created by Robert Griesemer, Rob Pike, and Ken Thompson to be an expressive and efficient language for writing readable and robust programs. Since its announcement in 2009, users of traditional, compiled languages have found Go’s simplicity, high-quality libraries, and straightforward tools to be a refreshing change. Go has also been winning converts from users of dynamic languages—those who appreciate how its lightweight type system makes their code safer and faster. The Go Programming Language is the authoritative resource for any programmer who wants to learn Go quickly and effectively. It assumes no prior knowledge of Go nor prior experience with any specific language, so it provides a solid foundation whether your previous experience is with JavaScript, Ruby, Python, Java, or C++. This guide will show you how to write efficient and idiomatic Go, making good use of its standard libraries to solve real-world problems."
+}
