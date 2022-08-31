@@ -3,11 +3,13 @@ module github.com/javiercanadillas/mongogo
 go 1.19
 
 require (
+	cloud.google.com/go/kms v1.4.0
 	cloud.google.com/go/secretmanager v1.5.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-playground/validator v9.31.0+incompatible
 	go.mongodb.org/mongo-driver v1.10.1
 	google.golang.org/genproto v0.0.0-20220822174746-9e6da59bd2fc
+	google.golang.org/protobuf v1.28.1
 )
 
 require (
@@ -49,7 +51,6 @@ require (
 	google.golang.org/api v0.85.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/grpc v1.48.0 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

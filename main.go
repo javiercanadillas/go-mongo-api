@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/javiercanadillas/mongogo/mongokms"
 	"github.com/javiercanadillas/mongogo/mongosecrets"
 
 	"github.com/gin-gonic/gin"
@@ -152,6 +153,58 @@ func readBook(c *gin.Context) {
 	})
 }
 
+func getAllBooks(c *gin.Context) {
+	findOptions := options.Find()
+	var results []Book
+
+	// Finding multiple documents returns a cursor
+	cur, err := coll.Find(context.TODO(), bson.M{}, findOptions)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, UserResponse{
+			Status:  http.StatusInternalServerError,
+			Message: "error",
+			Data: map[string]interface{}{
+				"data": err.Error(),
+			},
+		})
+		return
+	}
+
+	for cur.Next(context.TODO()) {
+		//Create a value into which the single document can be decoded
+		var book Book
+		err := cur.Decode(&book)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, UserResponse{
+				Status:  http.StatusInternalServerError,
+				Message: "Error iterating through books",
+				Data: map[string]interface{}{
+					"data": err.Error(),
+				},
+			})
+			return
+		}
+
+		results = append(results, book)
+
+	}
+
+	if err := cur.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	//Close the cursor once finished
+	cur.Close(context.TODO())
+
+	c.JSON(http.StatusOK, UserResponse{
+		Status:  http.StatusOK,
+		Message: "success",
+		Data: map[string]interface{}{
+			"data": results,
+		},
+	})
+}
+
 // Delete a book by title
 func deleteBook(c *gin.Context) {
 	title := c.Param("title")
@@ -191,15 +244,47 @@ func deleteBook(c *gin.Context) {
 }
 
 func main() {
-	// Init Mongo connection with Connection URL
-	log.Println("Trying to get connection URL from Cloud Secret Manager")
-	uri := fmt.Sprintf("%s", mongosecrets.GetSecret("MongoConnURL", "latest"))
-	if uri == "" {
-		log.Println("Couldn't retrieve URL from Cloud Secret Manager. Trying local env vars.")
-		uri = os.Getenv("MONGODB_URI")
-		if uri == "" {
-			log.Fatal("You must set your 'MONGODB_URI' env variable.")
+	secretsMode := os.Getenv("SECRETS_MODE")
+	ginPort := os.Getenv("GIN_PORT")
+	if ginPort == "" {
+		ginPort = "8080"
+	}
+
+	// Init Mongo connection with Connection URL depending on env configuration
+	log.Printf("Trying to load connection string from %s", secretsMode)
+	var uri string
+
+	switch secretsMode {
+	case "file":
+		var secretFilePath string
+		secretEncryption := os.Getenv("SECRET_ENCRYPTION")
+		// Check if we should use an encrypted secret, as volumes may be insecure
+		if secretEncryption == "true" {
+			secretFilePath = "/var/secrets/EncryptedMongoConnURL.data"
+			ciphertext, err := os.ReadFile(secretFilePath)
+			if err != nil {
+				log.Fatalf("Error accessing secret file at location %s: %s", secretFilePath, err)
+			}
+			keyName := "projects/javiercm-webapp/locations/europe-west1/keyRings/exercise/cryptoKeys/mongo-backup"
+			uri = mongokms.DecriptSymmetric(keyName, ciphertext)
+		} else {
+			secretFilePath = "/var/secrets/mongoConnURL.txt"
+			secretData, err := os.ReadFile(secretFilePath)
+			if err != nil {
+				log.Fatalf("Error accessing secret file at location %s: %s", secretFilePath, err)
+			}
+			uri = string(secretData)
 		}
+	case "env":
+		secretEnvVar := "MONGODB_URI"
+		uri = os.Getenv(secretEnvVar)
+		if uri == "" {
+			log.Fatalf("Environment variable %s seems to be empty or undefined.", secretEnvVar)
+		}
+	case "api":
+		uri = string(mongosecrets.GetSecret("MongoConnURL", "latest"))
+	default:
+		log.Fatalf("You need to specify a valid option (\"file\", \"api\" or \"env\", instead I got %s", secretsMode)
 	}
 
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
@@ -209,9 +294,8 @@ func main() {
 
 	coll = client.Database("library").Collection("books")
 
-	// Set gin-gonic in prod mode
-	gin.SetMode(gin.ReleaseMode)	
 	r := gin.Default()
+
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"data": "Hello from my basic REST API",
@@ -219,8 +303,8 @@ func main() {
 	})
 	r.GET("/book/:title", readBook)
 	r.GET("/read", read)
+	r.GET("/books", getAllBooks)
 	r.POST("/book", createBook)
 	r.DELETE("/book/:title", deleteBook)
-	r.Run("localhost:8080")
+	r.Run(fmt.Sprintf("0.0.0.0:%s", ginPort))
 }
-
